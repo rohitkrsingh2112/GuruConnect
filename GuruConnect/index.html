@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GuruConnect</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Title -->
+    <header>
+      <h1>GuruConnect </h1>
+    </header>
+
+    <!-- Navigation Boxes -->
+    <div class="container">
+      <div class="box" @click="view = 'admin'">
+        <img src="admin.jpg" alt="Admin Logo">
+        <h2>Admin</h2>
+      </div>
+      <div class="box" @click="view = 'teacher'">
+        <img src="teacherlogo.jpg" alt="Teacher Logo">
+        <h2>Teacher</h2>
+      </div>
+      <div class="box" @click="view = 'student'">
+        <img src="studentlogo.jpg" alt="Student Logo">
+        <h2>Student</h2>
+      </div>
+    </div>
+
+    <!-- Admin View -->
+    <div :class="['view', { active: view === 'admin' }]">
+      <div v-if="!adminLoggedIn">
+        <h2>Admin Login</h2>
+        <form @submit.prevent="adminLogin">
+          <input type="email" v-model="adminemail" placeholder="Email" required>
+          <input type="password" v-model="adminpassword" placeholder="Password" required>
+          <button type="submit">Login</button>
+          <div v-if="adminErrorMessage" class="message-container">
+            <span class="message error-message">{{ adminErrorMessage }}</span>
+          </div>
+        </form>
+      </div>
+      <div v-else>
+        <!-- Add Teacher -->
+        <h3>Add Teacher</h3>
+        <form @submit.prevent="addTeacher">
+          <input type="text" v-model="newTeacherName" placeholder="Name" required>
+          <input type="email" v-model="newTeacherEmail" placeholder="Email" required>
+          <input type="password" v-model="newTeacherPassword" placeholder="Password" required>
+          <input type="text" v-model="newTeacherDepartment" placeholder="Department" required>
+          <input type="text" v-model="newTeacherSubject" placeholder="Subject" required>
+          <button type="submit">Add Teacher</button>
+        </form>
+        <div v-if="successMessage" class="message-container">
+          <span class="message success-message">{{ successMessage }}</span>
+        </div>
+        <div v-if="errorMessage" class="message-container">
+          <span class="message error-message">{{ errorMessage }}</span>
+        </div>
+
+        <!-- Update/Delete Teacher -->
+        <h3>Update/Delete Teacher</h3>
+        <form @submit.prevent="updateTeacher">
+          <input type="email" v-model="updateTeacherEmail" placeholder="Email" required>
+          <input type="text" v-model="updateTeacherName" placeholder="Name" required>
+          <input type="text" v-model="updateTeacherDepartment" placeholder="Department" required>
+          <input type="text" v-model="updateTeacherSubject" placeholder="Subject" required>
+          <button type="submit">Update Teacher</button>
+        </form>
+        <button @click="deleteTeacher">Delete Teacher</button>
+
+        <!-- Approve/Deny Student Registration -->
+        <h3>Pending Student Registrations</h3>
+        <ul>
+          <li v-for="student in pendingStudents" :key="student.id">
+            {{ student.email }}
+            <button @click="approveStudentRegistration(student.id)">Approve</button>
+            <button @click="denyStudentRegistration(student.id)">Deny</button>
+          </li>
+        </ul>
+        <h3>Pending Teacher Registrations</h3>
+        <ul>
+          <li v-for="teacher in pendingTeachers" :key="teacher.id">
+            {{ teacher.email }}
+            <button @click="approveTeacherRegistration(teacher.id)">Approve</button>
+            <button @click="denyTeacherRegistration(teacher.id)">Deny</button>
+          </li>
+        </ul>
+
+        <h3>Approved Student Registrations</h3>
+        <ul>
+          <li v-for="student in approvedStudents" :key="student.id">
+            {{ student.email }}
+            <!-- Approved students don't need action buttons -->
+          </li>
+        </ul>
+
+        <h3>Denied Student Registrations</h3>
+        <ul>
+          <li v-for="student in deniedStudents" :key="student.id">
+            {{ student.email }}
+            <!-- Denied students don't need action buttons -->
+          </li>
+        </ul>
+
+        <h3>Approved Teacher Registrations</h3>
+        <ul>
+          <li v-for="teacher in approvedTeachers" :key="teacher.id">
+            {{ teacher.email }}
+            <!-- Approved teachers don't need action buttons -->
+          </li>
+        </ul>
+
+        <h3>Denied Teacher Registrations</h3>
+        <ul>
+          <li v-for="teacher in deniedTeachers" :key="teacher.id">
+            {{ teacher.email }}
+            <!-- Denied teachers don't need action buttons -->
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Teacher View -->
+    <div :class="['view', { active: view === 'teacher' }]">
+      <div v-if="!teacherLoggedIn">
+        <h2>Teacher Login</h2>
+        <form @submit.prevent="teacherLogin">
+          <input type="email" v-model="loginEmail" placeholder="Email" required>
+          <input type="password" v-model="loginPassword" placeholder="Password" required>
+          <button type="submit">Login</button>
+          <div v-if="errorMessage" class="message-container">
+            <span class="message error-message">{{ errorMessage }}</span>
+          </div>
+        </form>
+
+        <h2>Teacher Register</h2>
+        <form @submit.prevent="teacherRegister">
+          <input type="email" v-model="registerEmail" placeholder="Email" required>
+          <input type="password" v-model="registerPassword" placeholder="Password" required>
+          <button type="submit">Register</button>
+          <div v-if="errorMessage" class="message-container">
+            <span class="message error-message">{{ errorMessage }}</span>
+          </div>
+          <div v-if="successMessage" class="message-container">
+            <span class="message success-message">{{ successMessage }}</span>
+          </div>
+        </form>
+      </div>
+      <div v-else>
+        <h2>Teacher Dashboard</h2>
+        <div>
+          <h3>Messages</h3>
+          <ul>
+            <li v-for="message in messages" :key="message.id">
+              <strong>{{ message.studentEmail }}:</strong> {{ message.content }}
+            </li>
+          </ul>
+        </div>
+        <h3>Appointments</h3>
+        <ul>
+          <li v-for="appointment in appointments" :key="appointment.id">
+            {{ appointment.studentEmail }} - {{ appointment.date }}
+            <button @click="approveAppointment(appointment.id)" v-if="!appointment.approved">Approve</button>
+            <button @click="cancelAppointment(appointment.id)">Cancel</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Student View -->
+    <div :class="['view', { active: view === 'student' }]">
+      <div v-if="!studentLoggedIn">
+        <h2>Student Login</h2>
+        <form @submit.prevent="studentLogin">
+          <input type="email" v-model="loginEmail" placeholder="Email" required>
+          <input type="password" v-model="loginPassword" placeholder="Password" required>
+          <button type="submit">Login</button>
+          <div v-if="errorMessage" class="message-container">
+            <span class="message error-message">{{ errorMessage }}</span>
+          </div>
+        </form>
+
+        <h2>Student Register</h2>
+        <form @submit.prevent="studentRegister">
+          <input type="email" v-model="registerEmail" placeholder="Email" required>
+          <input type="password" v-model="registerPassword" placeholder="Password" required>
+          <button type="submit">Register</button>
+          <div v-if="errorMessage" class="message-container">
+            <span class="message error-message">{{ errorMessage }}</span>
+          </div>
+          <div v-if="successMessage" class="message-container">
+            <span class="message success-message">{{ successMessage }}</span>
+          </div>
+        </form>
+      </div>
+      <div v-else>
+        <h3>Book Appointment</h3>
+        <form @submit.prevent="bookAppointment">
+          <input type="email" v-model="appointmentTeacherEmail" placeholder="Teacher Email" required>
+          <input type="date" v-model="appointmentDate" required>
+          <button type="submit">Book Appointment</button>
+          <div v-if="successMessage" class="message-container">
+            <span class="message success-message">{{ successMessage }}</span>
+          </div>
+        </form>
+
+        <h3>Send Message</h3>
+        <form @submit.prevent="sendMessage">
+          <input type="email" v-model="messageTeacherEmail" placeholder="Teacher Email" required>
+          <textarea v-model="messageContent" placeholder="Message" required></textarea>
+          <button type="submit">Send Message</button>
+          <!-- Display success and error messages as needed -->
+          <p v-if="successMessage">{{ successMessage }}</p>
+          <p v-if="errorMessage">{{ errorMessage }}</p>
+        </form>
+
+        <h3>Search Teacher</h3>
+        <form @submit.prevent="searchTeacher">
+          <input type="text" v-model="searchQuery" placeholder="Teacher Name" required>
+          <button type="submit">Search</button>
+        </form>
+        <ul>
+          <li v-for="result in searchResults" :key="result.email">{{ result.name }} - {{ result.department }} - {{ result.subject }}</li>
+        </ul>
+      </div>
+    </div>
+    <footer>
+      <h4>Made with love from @Rohit Kumar Singh  </h4>
+      <h5>Unified Mentor Pvt Ltd</h5>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
